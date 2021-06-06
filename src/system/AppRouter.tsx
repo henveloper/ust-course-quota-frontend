@@ -4,10 +4,6 @@ import { MainView } from '../views/MainView';
 export const AppRouter = () => {
     return <BrowserRouter>
         <Switch>
-            <Route exact path='/test'>
-                1231
-            </Route>
-
             <Route>
                 <MainView/>
             </Route>
