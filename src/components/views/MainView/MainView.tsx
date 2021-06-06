@@ -1,6 +1,7 @@
 import {
     Box,
     Container,
+    Grid,
     IconButton,
     LinearProgress,
     Paper,
@@ -12,12 +13,14 @@ import {
     TableRow,
     useTheme
 } from '@material-ui/core';
-import { useAppContext } from '../system/Container';
+import { useAppContext } from '../../../system/Container';
 import { useSnackbar } from 'notistack';
-import { ApiService, IApiCourseReport, IApiRegisteredCourses } from '../services/ApiService';
-import { createRef, useEffect, useState } from 'react';
-import { SportsKabaddi } from '@material-ui/icons';
+import { ApiService, IApiCourseReport, IApiRegisteredCourses } from '../../../services/ApiService';
+import { createRef, useEffect, useMemo, useState } from 'react';
+import { SportsKabaddi, Timeline } from '@material-ui/icons';
 import * as d3 from 'd3';
+import dayjs from 'dayjs';
+import { LabeledIcon } from './LabeledButton';
 
 export const MainView = () => {
     const appContext = useAppContext();
@@ -29,9 +32,16 @@ export const MainView = () => {
     const [ courseReport, setCourseReport ] = useState<IApiCourseReport['aggregatedData'] | undefined | null>(null);
     const graphRef = createRef<HTMLDivElement>();
 
+    const chartColorMap = useMemo(() => ({
+        quota: theme.palette.getContrastText(theme.palette.background.default),
+        enrol: theme.palette.secondary.main,
+        avail: theme.palette.primary.main,
+        wait: theme.palette.primary.contrastText,
+    }), [ theme ]);
+
     useEffect(() => {
         appContext.getService(ApiService).registeredCourses()
-            .then(r => setRegisteredCourses(r.courseData))
+            .then(r => setRegisteredCourses(r.courseData.sort((a, b) => a._id > b._id ? 1 : -1)))
             .catch(err => enqueueSnackbar(err.message));
     }, []);
 
@@ -41,7 +51,7 @@ export const MainView = () => {
         }
 
         appContext.getService(ApiService).courseReport(selectedCourse)
-            .then(r => setCourseReport(r.aggregatedData))
+            .then(r => setCourseReport(r.aggregatedData.sort((a, b) => a._id - b._id)))
             .catch(err => enqueueSnackbar(err.message));
     }, [ selectedCourse ]);
 
@@ -52,16 +62,15 @@ export const MainView = () => {
 
         // set the dimensions and margins of the graph
         const margin = { top: 50, right: 50, bottom: 50, left: 50 },
-            width = 460 - margin.left - margin.right,
-            height = 400 - margin.top - margin.bottom;
+            width = 1000 - margin.left - margin.right,
+            height = 500 - margin.top - margin.bottom;
 
         // append the svg object to the body of the page
         const selection = d3.select(graphRef.current);
         selection.selectChildren('*').remove();
         const svg = selection
             .append('svg')
-            .attr('width', width + margin.left + margin.right)
-            .attr('height', height + margin.top + margin.bottom)
+            .attr('viewBox', `0 0 ${ width + margin.left + margin.right } ${ height + margin.top + margin.bottom }`)
             .append('g')
             .attr('transform',
                 'translate(' + margin.left + ',' + margin.top + ')');
@@ -71,45 +80,67 @@ export const MainView = () => {
             .attr('y', 0 - (margin.top / 2))
             .attr('text-anchor', 'middle')
             .style('font-size', '16px')
-            .style('fill', theme.palette.primary.contrastText)
+            .style('fill', theme.palette.getContrastText(theme.palette.background.default))
             .style('text-decoration', 'underline')
-            .text('Value vs Date Graph');
+            .text(selectedCourse ?? '');
 
 
-        const x = d3.scaleLinear()
-            .domain(d3.extent(courseReport, d => d._id).map(x => x ?? 0))
+        const x = d3.scaleTime()
+            .domain(d3.extent(courseReport, d => dayjs.unix(d._id).toDate()).map(x => x ?? new Date()))
             .range([ 0, width ]);
         svg.append('g')
             .attr('transform', 'translate(0,' + height + ')')
             .call(d3.axisBottom(x));
 
         const y = d3.scaleLinear()
-            .domain([ 0, d3.max(courseReport, d => d.quota) ?? 0 ])
+            .domain([ 0, 1.2 * (d3.max(courseReport, d => d.quota) ?? 0) ])
             .range([ height, 0 ]);
         svg.append('g')
             .call(d3.axisLeft(y));
 
-        // Add the line
+        // Add the lines
         svg.append('path')
-            .datum(courseReport.sort((a, b) => a._id - b._id))
+            .datum(courseReport)
             .attr('fill', 'none')
-            .attr('stroke', theme.palette.primary.contrastText)
-            .attr('stroke-width', 3.5)
+            .attr('stroke', chartColorMap.quota)
+            .attr('stroke-width', 1)
             .attr('d', d3.line<typeof courseReport[number]>()
-                .x(d => x(d._id))
+                .x(d => x(dayjs.unix(d._id).toDate()))
+                .y(d => y(d.quota))
+            );
+
+        svg.append('path')
+            .datum(courseReport)
+            .attr('fill', 'none')
+            .attr('stroke', chartColorMap.wait)
+            .attr('stroke-width', 1)
+            .attr('d', d3.line<typeof courseReport[number]>()
+                .x(d => x(dayjs.unix(d._id).toDate()))
+                .y(d => y(d.wait))
+            );
+
+        svg.append('path')
+            .datum(courseReport)
+            .attr('fill', 'none')
+            .attr('stroke', chartColorMap.avail)
+            .attr('stroke-width', 1)
+            .attr('d', d3.line<typeof courseReport[number]>()
+                .x(d => x(dayjs.unix(d._id).toDate()))
                 .y(d => y(d.avail))
             );
 
         svg.append('path')
-            .datum(courseReport.sort((a, b) => a._id - b._id))
+            .datum(courseReport)
             .attr('fill', 'none')
-            .attr('stroke', 'white')
-            .attr('stroke-width', 3.5)
+            .attr('stroke', chartColorMap.enrol)
+            .attr('stroke-width', 1)
             .attr('d', d3.line<typeof courseReport[number]>()
-                .x(d => x(d._id))
-                .y(d => y(d.wait))
+                .x(d => x(dayjs.unix(d._id).toDate()))
+                .y(d => y(d.enrol))
             );
-    }, [ courseReport ]);
+
+
+    }, [ courseReport, theme ]);
 
     const handlePing = () => {
         appContext.getService(ApiService).root()
@@ -146,6 +177,7 @@ export const MainView = () => {
                     <TableBody>
                         { registeredCourses
                             .sort((a, b) => a > b ? 1 : -1)
+                            .filter(r => r.recordCount)
                             .map(course => (
                                 <TableRow key={ course._id }>
                                     <TableCell component="th" scope="row"> { course.courseTitle } </TableCell>
@@ -157,7 +189,6 @@ export const MainView = () => {
                                             disabled={ !course.recordCount }
                                             size='small' color="secondary" aria-label="add an alarm"
                                             onClick={ () => {
-                                                console.log(course._id);
                                                 setSelectedCourse(course._id);
                                             } }
                                         >
@@ -179,6 +210,16 @@ export const MainView = () => {
             <LinearProgress/>
         </Box> }
 
-        { courseReport && <div ref={ graphRef }/> }
+        { courseReport && <Box>
+            <div ref={ graphRef }/>
+
+            <Grid container justify='space-around'>
+                { Object.entries(chartColorMap).map(([ k, v ]) => {
+                    return <Grid item>
+                        <LabeledIcon icon={ Timeline } label={ k } labelColor={ v }/>
+                    </Grid>;
+                }) }
+            </Grid>
+        </Box> }
     </Container>;
 };

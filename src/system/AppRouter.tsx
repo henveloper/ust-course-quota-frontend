@@ -1,5 +1,5 @@
 import { BrowserRouter, Route, Switch } from 'react-router-dom';
-import { MainView } from '../views/MainView';
+import { MainView } from '../components/views/MainView/MainView';
 
 export const AppRouter = () => {
     return <BrowserRouter>
