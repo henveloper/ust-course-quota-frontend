@@ -1,26 +1,23 @@
-import React from 'react';
-import logo from './logo.svg';
+import React, { useMemo } from 'react';
 import './App.css';
+import { useAppContext } from './system/Container';
+import { AppRouter } from './system/AppRouter';
+import { createMuiTheme, CssBaseline, MuiThemeProvider, responsiveFontSizes } from '@material-ui/core';
 
 function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+  const context = useAppContext();
+  const theme = useMemo(() => {
+    return responsiveFontSizes(createMuiTheme({
+      palette: {
+        type: context.isDarkTheme ? 'dark' : 'light'
+      }
+    }));
+  }, [ context.isDarkTheme ]);
+
+  return <MuiThemeProvider theme={ theme }>
+    <CssBaseline/>
+    <AppRouter/>
+  </MuiThemeProvider>;
 }
 
 export default App;
