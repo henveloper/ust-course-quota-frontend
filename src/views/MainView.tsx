@@ -9,7 +9,8 @@ import {
     TableCell,
     TableContainer,
     TableHead,
-    TableRow
+    TableRow,
+    useTheme
 } from '@material-ui/core';
 import { useAppContext } from '../system/Container';
 import { useSnackbar } from 'notistack';
@@ -20,6 +21,7 @@ import * as d3 from 'd3';
 
 export const MainView = () => {
     const appContext = useAppContext();
+    const theme = useTheme();
     const { enqueueSnackbar } = useSnackbar();
 
     const [ registeredCourses, setRegisteredCourses ] = useState<IApiRegisteredCourses['courseData'] | undefined>();
@@ -49,13 +51,14 @@ export const MainView = () => {
         }
 
         // set the dimensions and margins of the graph
-        const margin = { top: 10, right: 30, bottom: 30, left: 60 },
+        const margin = { top: 50, right: 50, bottom: 50, left: 50 },
             width = 460 - margin.left - margin.right,
             height = 400 - margin.top - margin.bottom;
 
         // append the svg object to the body of the page
-
-        const svg = d3.select(graphRef.current)
+        const selection = d3.select(graphRef.current);
+        selection.selectChildren('*').remove();
+        const svg = selection
             .append('svg')
             .attr('width', width + margin.left + margin.right)
             .attr('height', height + margin.top + margin.bottom)
@@ -63,15 +66,25 @@ export const MainView = () => {
             .attr('transform',
                 'translate(' + margin.left + ',' + margin.top + ')');
 
+        svg.append('text')
+            .attr('x', (width / 2))
+            .attr('y', 0 - (margin.top / 2))
+            .attr('text-anchor', 'middle')
+            .style('font-size', '16px')
+            .style('fill', theme.palette.primary.contrastText)
+            .style('text-decoration', 'underline')
+            .text('Value vs Date Graph');
+
+
         const x = d3.scaleLinear()
-            .domain(d3.extent(courseReport, d => d._id).map(x => x ?? 1000))
+            .domain(d3.extent(courseReport, d => d._id).map(x => x ?? 0))
             .range([ 0, width ]);
         svg.append('g')
             .attr('transform', 'translate(0,' + height + ')')
             .call(d3.axisBottom(x));
 
         const y = d3.scaleLinear()
-            .domain([ 0, d3.max(courseReport, d => d.avail) ?? 1000 ])
+            .domain([ 0, d3.max(courseReport, d => d.quota) ?? 0 ])
             .range([ height, 0 ]);
         svg.append('g')
             .call(d3.axisLeft(y));
@@ -80,13 +93,23 @@ export const MainView = () => {
         svg.append('path')
             .datum(courseReport.sort((a, b) => a._id - b._id))
             .attr('fill', 'none')
-            .attr('stroke', 'white')
+            .attr('stroke', theme.palette.primary.contrastText)
             .attr('stroke-width', 3.5)
             .attr('d', d3.line<typeof courseReport[number]>()
                 .x(d => x(d._id))
                 .y(d => y(d.avail))
             );
-    });
+
+        svg.append('path')
+            .datum(courseReport.sort((a, b) => a._id - b._id))
+            .attr('fill', 'none')
+            .attr('stroke', 'white')
+            .attr('stroke-width', 3.5)
+            .attr('d', d3.line<typeof courseReport[number]>()
+                .x(d => x(d._id))
+                .y(d => y(d.wait))
+            );
+    }, [ courseReport ]);
 
     const handlePing = () => {
         appContext.getService(ApiService).root()
