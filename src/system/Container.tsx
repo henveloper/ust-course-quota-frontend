@@ -2,8 +2,6 @@ import { createContext, ReactNode, useContext, useMemo, useState } from 'react';
 import { Container } from 'inversify';
 import { ApiService } from '../services/ApiService';
 import { configs } from './configs';
-import { AxiosError } from 'axios';
-import { useSnackbar } from 'notistack';
 
 type classType = new (...args: any[]) => any;
 

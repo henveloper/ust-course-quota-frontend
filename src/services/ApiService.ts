@@ -2,19 +2,21 @@ import axios, { AxiosRequestConfig } from 'axios';
 import { inject, injectable } from 'inversify';
 import { IConfigs } from '../system/configs';
 
-export interface IApiRegisteredCourses {
-    courseData: {
-        _id: string,
-        courseTitle: string,
-        isQuotaLogged: boolean,
+export interface IAPIGetCourses {
+    courses: {
+        ref: string,
+        semester: string,
+        title: string,
+        code: string,
+        isLogging: boolean,
         updatedAt: number,
-        recordCount: number
     }[]
 }
 
-export interface IApiCourseReport {
-    aggregatedData: {
-        _id: number,
+export interface IAPIGetQuotas {
+    quotas: {
+        t: number,
+        section: string,
         quota: number,
         enrol: number,
         avail: number,
@@ -37,13 +39,13 @@ export class ApiService {
         return response.data;
     }
 
-    public async registeredCourses() {
-        const response = await this.api<IApiRegisteredCourses>({ url: '/registeredCourses' });
+    public async getCourses() {
+        const response = await this.api<IAPIGetCourses>({ url: '/courses' });
         return response.data;
     }
 
-    public async courseReport(courseCode: string) {
-        const response = await this.api<IApiCourseReport>({ url: '/courseReport', params: { code: courseCode } });
+    public async getQuotas(ref: string) {
+        const response = await this.api<IAPIGetQuotas>({ url: '/courseReport', params: { ref } });
         return response.data;
     }
 }
