@@ -1,17 +1,7 @@
+import store from 'store';
 import axios, { AxiosRequestConfig } from 'axios';
 import { inject, injectable } from 'inversify';
 import { IConfigs } from '../system/configs';
-
-export interface IAPIGetCourses {
-    courses: {
-        ref: string,
-        semester: string,
-        title: string,
-        code: string,
-        isLogging: boolean,
-        updatedAt: number,
-    }[]
-}
 
 export interface IAPIGetQuotas {
     quotas: {
@@ -31,7 +21,11 @@ export class ApiService {
     public configs!: IConfigs;
 
     private async api<T>(config: AxiosRequestConfig) {
-        return await axios.request<T>({ ...config, baseURL: this.configs.apiServerEndpoint });
+        const baseUrl: string = store.get('ustQuotaViewer:endPoint');
+        return axios.request<T>({
+            ...config,
+            baseURL: baseUrl,
+        });
     }
 
     public async root() {
@@ -39,13 +33,8 @@ export class ApiService {
         return response.data;
     }
 
-    public async getCourses() {
-        const response = await this.api<IAPIGetCourses>({ url: '/courses' });
-        return response.data;
-    }
-
-    public async getQuotas(ref: string) {
-        const response = await this.api<IAPIGetQuotas>({ url: '/courseReport', params: { ref } });
+    public async getQuotas(courseCode: string) {
+        const response = await this.api<IAPIGetQuotas>({ url: '/quotas', params: { courseCode } });
         return response.data;
     }
 }
