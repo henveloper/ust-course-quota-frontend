@@ -35,9 +35,36 @@ export const QuotaChart = (props: IProps) => {
         datasets: [
           {
             label: "quota",
-            backgroundColor: "blue",
+            backgroundColor: "black",
+            borderColor: "black",
+            hidden: true,
             data: quotas.map((d) => {
-              return { x: d.t, y: d.quota };
+              return { x: d.t * 1000, y: d.quota };
+            }),
+          },
+          {
+            label: "enrol",
+            backgroundColor: "yellow",
+            borderColor: "yellow",
+            hidden: true,
+            data: quotas.map((d) => {
+              return { x: d.t * 1000, y: d.enrol };
+            }),
+          },
+          {
+            label: "avail",
+            backgroundColor: "blue",
+            borderColor: "blue",
+            data: quotas.map((d) => {
+              return { x: d.t * 1000, y: d.avail };
+            }),
+          },
+          {
+            label: "wait",
+            backgroundColor: "red",
+            borderColor: "red",
+            data: quotas.map((d) => {
+              return { x: d.t * 1000, y: d.wait };
             }),
           },
         ],
@@ -45,7 +72,7 @@ export const QuotaChart = (props: IProps) => {
       options: {
         scales: {
           x: {
-            type: "timeseries",
+            type: "time",
           },
           y: {
             beginAtZero: true,
