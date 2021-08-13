@@ -3,9 +3,8 @@ import {
   Button,
   Container,
   Grid,
-  Paper,
   TextField,
-  useTheme,
+  Typography,
 } from "@material-ui/core";
 import { SportsKabaddi } from "@material-ui/icons";
 import { useAppContext } from "../../../system/Container";
@@ -19,30 +18,37 @@ Chart.register(...registerables);
 
 export const MainView = () => {
   const appContext = useAppContext();
-  const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
-  const [courseCodes, setCourseCodes] = useState<string[]>([
-    "MATH 2421",
-    "COMP 3021",
+  const courseCodes = [
     "COMP 3111",
-  ]);
+    "COMP 3021",
+    "MATH 2421",
+    "MATH 2023",
+    "MATH 2511",
+  ];
   const [isPinged, setIsPinged] = useState(false);
-  const [charts, setCharts] = useState<Record<string, Chart>>({});
   const [quotas, setQuotas] = useState<Record<string, IAPIGetQuotas["quotas"]>>(
     {}
   );
 
   const courseSections = useMemo(() => {
+    if (!courseCodes) {
+      return;
+    }
     return Object.fromEntries(
       courseCodes.map((c) => {
         const sections = new Set((quotas[c] ?? []).map((s) => s.section));
         return [c, Array.from(sections)];
       })
     );
-  }, [courseCodes, quotas]);
+  }, [quotas]);
 
   useEffect(() => {
+    if (!courseCodes) {
+      return;
+    }
+
     try {
       for (const code of courseCodes) {
         appContext
@@ -56,7 +62,7 @@ export const MainView = () => {
     } catch (err) {
       enqueueSnackbar(err.message);
     }
-  }, [courseCodes, appContext, enqueueSnackbar]);
+  }, [appContext, enqueueSnackbar]);
 
   const handlePing = () => {
     appContext
@@ -88,13 +94,14 @@ export const MainView = () => {
 
       <Box py={1}>
         <Grid container alignItems="center" spacing={2}>
-          <Grid item>
+          <Grid item xs={6}>
             <TextField
               onChange={(v) =>
                 store.set("ustQuotaViewer:endPoint", v.target.value)
               }
               defaultValue={store.get("ustQuotaViewer:endPoint")}
               label="endpoint?"
+              fullWidth
             />
           </Grid>
           <Grid item>
@@ -111,20 +118,33 @@ export const MainView = () => {
         </Grid>
       </Box>
 
-      <Box>
-        {Object.entries(courseSections).map(([course, sections], k1) => {
-          return sections.map((section, k2) => {
+      {courseCodes && (
+        <Box>
+          {courseCodes.map((course, k1) => {
             return (
-              <QuotaChart
-                quotas={quotas[course].filter((r) => r.section === section)}
-                course={course}
-                section={section}
-                key={`${k1}_${k2}`}
-              />
+              <Box py={2}>
+                <Typography variant="h4">{course}</Typography>
+                <Grid container spacing={2}>
+                  {(courseSections ?? {})[course].map((section, k2) => {
+                    return (
+                      <Grid item xs={6}>
+                        <QuotaChart
+                          quotas={quotas[course].filter(
+                            (r) => r.section === section
+                          )}
+                          course={course}
+                          section={section}
+                          key={`${k1}_${k2}`}
+                        />
+                      </Grid>
+                    );
+                  })}
+                </Grid>
+              </Box>
             );
-          });
-        })}
-      </Box>
+          })}
+        </Box>
+      )}
     </Container>
   );
 };

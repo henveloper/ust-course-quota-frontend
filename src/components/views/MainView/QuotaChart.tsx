@@ -70,6 +70,12 @@ export const QuotaChart = (props: IProps) => {
         ],
       },
       options: {
+        plugins: {
+          title: {
+            display: true,
+            text: `${course} ${section}`,
+          },
+        },
         scales: {
           x: {
             type: "time",
@@ -85,7 +91,6 @@ export const QuotaChart = (props: IProps) => {
 
   return (
     <Paper>
-      {`${course} ${section}`}
       <canvas id={id} width={400} height={200} />
     </Paper>
   );
