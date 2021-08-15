@@ -2,7 +2,7 @@
 
 ![demo](./demo.jpg)
 
-- this website expected u to implement your own backend with the following 2 apis
+- this website expected u to implement ur own backend with the following 2 apis
 
 ### GET /
 
