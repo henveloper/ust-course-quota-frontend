@@ -1,12 +1,13 @@
 import { Paper } from "@material-ui/core";
 import { Chart } from "chart.js";
 import { useEffect, useState } from "react";
-import { IAPIGetQuotas } from "../../../services/ApiService";
+import { SectionQuota } from "../../../services/ApiService";
 
 interface IProps {
-  quotas: IAPIGetQuotas["quotas"]; // already filtered
+  quotas: SectionQuota[]; // already filtered
   course: string;
   section: string;
+  showExtra: boolean;
 }
 
 export const QuotaChart = (props: IProps) => {
@@ -17,6 +18,7 @@ export const QuotaChart = (props: IProps) => {
 
   useEffect(() => {
     const e = document.getElementById(id) as HTMLCanvasElement;
+
     if (!quotas) {
       console.error(`No quota data for ${id}.`);
       return;
@@ -37,7 +39,7 @@ export const QuotaChart = (props: IProps) => {
             label: "quota",
             backgroundColor: "black",
             borderColor: "black",
-            hidden: true,
+            hidden: !props.showExtra,
             data: quotas.map((d) => {
               return { x: d.t * 1000, y: d.quota };
             }),
@@ -46,7 +48,7 @@ export const QuotaChart = (props: IProps) => {
             label: "enrol",
             backgroundColor: "yellow",
             borderColor: "yellow",
-            hidden: true,
+            hidden: !props.showExtra,
             data: quotas.map((d) => {
               return { x: d.t * 1000, y: d.enrol };
             }),

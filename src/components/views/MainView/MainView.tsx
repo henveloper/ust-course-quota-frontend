@@ -9,7 +9,10 @@ import {
 import { SportsKabaddi } from "@material-ui/icons";
 import { useAppContext } from "../../../system/Container";
 import { useSnackbar } from "notistack";
-import { ApiService, IAPIGetQuotas } from "../../../services/ApiService";
+import {
+  ApiService,
+  SectionQuota,
+} from "../../../services/ApiService";
 import store from "store";
 import { useEffect, useMemo, useState } from "react";
 import { Chart, registerables } from "chart.js";
@@ -20,49 +23,40 @@ export const MainView = () => {
   const appContext = useAppContext();
   const { enqueueSnackbar } = useSnackbar();
 
-  const courseCodes = [
-    "COMP 3111",
-    "COMP 3021",
-    "MATH 2421",
-    "MATH 2023",
-    "MATH 2511",
-  ];
   const [isPinged, setIsPinged] = useState(false);
-  const [quotas, setQuotas] = useState<Record<string, IAPIGetQuotas["quotas"]>>(
-    {}
-  );
+  const [quotas, setQuotas] = useState<SectionQuota[] | undefined>(undefined);
+  const [showExtra, setShowExtra] = useState(false);
 
   const courseSections = useMemo(() => {
-    if (!courseCodes) {
+    if (!quotas) {
       return;
     }
-    return Object.fromEntries(
-      courseCodes.map((c) => {
-        const sections = new Set((quotas[c] ?? []).map((s) => s.section));
-        return [c, Array.from(sections)];
-      })
-    );
+    const s: { [course: string]: Set<string> } = {};
+    quotas.forEach(({ courseCode, section }) => {
+      let set = s[courseCode] ?? new Set();
+      set.add(section);
+      s[courseCode] = set;
+    });
+    return s;
   }, [quotas]);
 
   useEffect(() => {
-    if (!courseCodes) {
+    if (!isPinged) {
       return;
     }
 
     try {
-      for (const code of courseCodes) {
-        appContext
-          .getService(ApiService)
-          .getQuotas(code)
-          .then((resp) => {
-            resp.quotas.sort((a, b) => a.t - b.t);
-            setQuotas((d) => ({ ...d, [code]: resp.quotas }));
-          });
-      }
+      appContext
+        .getService(ApiService)
+        .getQuotas(24)
+        .then((resp) => {
+          resp.quotas.sort((a, b) => a.t - b.t);
+          setQuotas(resp.quotas);
+        });
     } catch (err) {
       enqueueSnackbar(err.message);
     }
-  }, [appContext, enqueueSnackbar]);
+  }, [isPinged, appContext, enqueueSnackbar]);
 
   const handlePing = () => {
     appContext
@@ -78,6 +72,7 @@ export const MainView = () => {
 
   return (
     <Container maxWidth="md">
+      {/* nuked image */}
       <Box py={3}>
         <img
           alt="nuke"
@@ -92,6 +87,7 @@ export const MainView = () => {
         />
       </Box>
 
+      {/* queries */}
       <Box py={1}>
         <Grid container alignItems="center" spacing={2}>
           <Grid item xs={6}>
@@ -116,35 +112,44 @@ export const MainView = () => {
             </Button>
           </Grid>
         </Grid>
+
+        <Box py={1}>
+          <Button
+            onClick={() => setShowExtra((p) => !p)}
+            variant={showExtra ? "contained" : "outlined"}
+          >
+            toggle show extra
+          </Button>
+        </Box>
       </Box>
 
-      {courseCodes && (
-        <Box>
-          {courseCodes.map((course, k1) => {
-            return (
-              <Box py={2}>
-                <Typography variant="h4">{course}</Typography>
-                <Grid container spacing={2}>
-                  {(courseSections ?? {})[course].map((section, k2) => {
-                    return (
-                      <Grid item xs={6}>
-                        <QuotaChart
-                          quotas={quotas[course].filter(
-                            (r) => r.section === section
-                          )}
-                          course={course}
-                          section={section}
-                          key={`${k1}_${k2}`}
-                        />
-                      </Grid>
-                    );
-                  })}
-                </Grid>
-              </Box>
-            );
-          })}
-        </Box>
-      )}
+      {/* display */}
+      {courseSections &&
+        Object.keys(courseSections).map((course, k1) => {
+          return (
+            <Box py={2}>
+              <Typography variant="h4">{course}</Typography>
+              <Grid container spacing={2}>
+                {Array.from(courseSections[course] ?? []).map((section, k2) => {
+                  return (
+                    <Grid item xs={6}>
+                      <QuotaChart
+                        quotas={(quotas ?? []).filter(
+                          (r) =>
+                            r.section === section && r.courseCode === course
+                        )}
+                        course={course}
+                        section={section}
+                        key={`${k1}_${k2}`}
+                        showExtra={showExtra}
+                      />
+                    </Grid>
+                  );
+                })}
+              </Grid>
+            </Box>
+          );
+        })}
     </Container>
   );
 };

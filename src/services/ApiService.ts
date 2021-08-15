@@ -3,15 +3,18 @@ import axios, { AxiosRequestConfig } from 'axios';
 import { inject, injectable } from 'inversify';
 import { IConfigs } from '../system/configs';
 
-export interface IAPIGetQuotas {
-    quotas: {
-        t: number,
+export interface SectionQuota {
+        courseCode: string,
         section: string,
+        t: number,
         quota: number,
         enrol: number,
         avail: number,
         wait: number,
-    }[],
+}
+
+interface IAPIGetQuotas {
+    quotas: SectionQuota[],
 }
 
 
@@ -33,8 +36,8 @@ export class ApiService {
         return response.data;
     }
 
-    public async getQuotas(courseCode: string) {
-        const response = await this.api<IAPIGetQuotas>({ url: '/quotas', params: { courseCode } });
+    public async getQuotas(hour: number) {
+        const response = await this.api<IAPIGetQuotas>({ url: '/quotas', params: { hour } });
         return response.data;
     }
 }
