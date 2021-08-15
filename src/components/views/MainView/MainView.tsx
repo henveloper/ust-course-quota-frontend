@@ -6,10 +6,11 @@ import {
   Divider,
   FormControlLabel,
   Grid,
+  IconButton,
   TextField,
   Typography,
 } from "@material-ui/core";
-import { SportsKabaddi } from "@material-ui/icons";
+import { Refresh, SportsKabaddi } from "@material-ui/icons";
 import { useAppContext } from "../../../system/Container";
 import { useSnackbar } from "notistack";
 import { ApiService, SectionQuota } from "../../../services/ApiService";
@@ -31,7 +32,7 @@ export const MainView = () => {
     LA: false,
     T: false,
   });
-  const [aggregate, setAggregate] = useState(false);
+  const [aggregate, setAggregate] = useState(true);
 
   const courseSections = useMemo(() => {
     if (!quotas) {
@@ -46,23 +47,16 @@ export const MainView = () => {
     return s;
   }, [quotas]);
 
-  useEffect(() => {
-    if (!isPinged) {
-      return;
-    }
-
-    try {
-      appContext
-        .getService(ApiService)
-        .getQuotas(24)
-        .then((resp) => {
-          resp.quotas.sort((a, b) => a.t - b.t);
-          setQuotas(resp.quotas);
-        });
-    } catch (err) {
-      enqueueSnackbar(err.message);
-    }
-  }, [isPinged, appContext, enqueueSnackbar]);
+  const fetch = () => appContext
+    .getService(ApiService)
+    .getQuotas(24)
+    .then((resp) => {
+      resp.quotas.sort((a, b) => a.t - b.t);
+      setQuotas(resp.quotas);
+    })
+    .catch((e) => {
+      enqueueSnackbar(e.message);
+    });
 
   const handlePing = () => {
     appContext
@@ -73,6 +67,7 @@ export const MainView = () => {
         enqueueSnackbar("PONG!", { variant: "success" });
         setIsPinged(true);
       })
+      .then(fetch)
       .catch((err) => enqueueSnackbar(err.message));
   };
 
@@ -126,6 +121,12 @@ export const MainView = () => {
       <Box>
         <Typography variant="h6">Options</Typography>
         <Grid container spacing={1}>
+          <Grid item>
+            <IconButton color="primary" onClick={fetch}>
+              <Refresh/>
+            </IconButton>
+          </Grid>
+          <Divider orientation="vertical" flexItem />
           <Grid item>
             <FormControlLabel
               control={
