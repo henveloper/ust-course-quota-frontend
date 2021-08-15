@@ -8,13 +8,14 @@ interface IProps {
   course: string;
   section: string;
   showExtra: boolean;
+  sum?: boolean;
 }
 
 export const QuotaChart = (props: IProps) => {
   const { quotas, course, section } = props;
   const id = `${course}_${section}`;
   const [chart, setChart] = useState<Chart | undefined>();
-  console.log(quotas);
+  const quotaMax = Math.max(...quotas.map(q => q.quota));
 
   useEffect(() => {
     const e = document.getElementById(id) as HTMLCanvasElement;
@@ -82,7 +83,15 @@ export const QuotaChart = (props: IProps) => {
           x: {
             type: "time",
           },
-          y: {
+          y: props.sum ? {
+            ticks: {
+              callback: (v) => {
+                return (+v/quotaMax).toLocaleString('en-GB', {
+                  style: 'percent'
+                })
+              }
+            }
+          }:{
             beginAtZero: true,
           },
         },

@@ -238,6 +238,7 @@ export const MainView = () => {
                               section="sum"
                               key={k1}
                               showExtra={showExtra}
+                              sum
                             />
                           </Grid>
                         )}
