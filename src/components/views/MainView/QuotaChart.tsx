@@ -15,7 +15,7 @@ export const QuotaChart = (props: IProps) => {
   const { quotas, course, section } = props;
   const id = `${course}_${section}`;
   const [chart, setChart] = useState<Chart | undefined>();
-  const quotaMax = Math.max(...quotas.map(q => q.quota));
+  const quotaMax = Math.max(...quotas.map((q) => q.quota));
 
   useEffect(() => {
     const e = document.getElementById(id) as HTMLCanvasElement;
@@ -73,6 +73,11 @@ export const QuotaChart = (props: IProps) => {
         ],
       },
       options: {
+        elements: {
+          point: {
+            radius: 0,
+          },
+        },
         plugins: {
           title: {
             display: true,
@@ -83,17 +88,19 @@ export const QuotaChart = (props: IProps) => {
           x: {
             type: "time",
           },
-          y: props.sum ? {
-            ticks: {
-              callback: (v) => {
-                return (+v/quotaMax).toLocaleString('en-GB', {
-                  style: 'percent'
-                })
+          y: props.sum
+            ? {
+                ticks: {
+                  callback: (v) => {
+                    return (+v / quotaMax).toLocaleString("en-GB", {
+                      style: "percent",
+                    });
+                  },
+                },
               }
-            }
-          }:{
-            beginAtZero: true,
-          },
+            : {
+                beginAtZero: true,
+              },
         },
       },
     });

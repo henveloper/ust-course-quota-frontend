@@ -1,11 +1,17 @@
 - frontend for ust quota viewer
 
-- backend is in a private project, refer to apiService for the expected api calls
+![demo](./demo.jpg)
+
+- this website expected u to implement your own backend with the following 2 apis
 
 ### GET /
 
+req {}
+
+resp {}
+
 ### GET /quotas
 
-req {courseCodes: string[]}
+req { hour: number }
 
-resp { section: string, t: number, quota, enrol, avail, wait: number, }[]
+resp { quotas: { courseCode: string, section: string, t: number, quota, enrol, avail, wait: number }[] }
