@@ -1,7 +1,10 @@
 import {
   Box,
   Button,
+  Checkbox,
   Container,
+  Divider,
+  FormControlLabel,
   Grid,
   TextField,
   Typography,
@@ -9,10 +12,7 @@ import {
 import { SportsKabaddi } from "@material-ui/icons";
 import { useAppContext } from "../../../system/Container";
 import { useSnackbar } from "notistack";
-import {
-  ApiService,
-  SectionQuota,
-} from "../../../services/ApiService";
+import { ApiService, SectionQuota } from "../../../services/ApiService";
 import store from "store";
 import { useEffect, useMemo, useState } from "react";
 import { Chart, registerables } from "chart.js";
@@ -26,6 +26,12 @@ export const MainView = () => {
   const [isPinged, setIsPinged] = useState(false);
   const [quotas, setQuotas] = useState<SectionQuota[] | undefined>(undefined);
   const [showExtra, setShowExtra] = useState(false);
+  const [showTypes, setShowTypes] = useState<Record<string, boolean>>({
+    L: true,
+    LA: false,
+    T: false,
+  });
+  const [aggregate, setAggregate] = useState(false);
 
   const courseSections = useMemo(() => {
     if (!quotas) {
@@ -86,8 +92,7 @@ export const MainView = () => {
           style={{ cursor: "pointer" }}
         />
       </Box>
-
-      {/* queries */}
+      {/* options */}
       <Box py={1}>
         <Grid container alignItems="center" spacing={2}>
           <Grid item xs={6}>
@@ -97,6 +102,7 @@ export const MainView = () => {
               }
               defaultValue={store.get("ustQuotaViewer:endPoint")}
               label="endpoint?"
+              type="password"
               fullWidth
             />
           </Grid>
@@ -112,44 +118,136 @@ export const MainView = () => {
             </Button>
           </Grid>
         </Grid>
-
-        <Box py={1}>
-          <Button
-            onClick={() => setShowExtra((p) => !p)}
-            variant={showExtra ? "contained" : "outlined"}
-          >
-            toggle show extra
-          </Button>
-        </Box>
       </Box>
 
-      {/* display */}
-      {courseSections &&
-        Object.keys(courseSections).map((course, k1) => {
-          return (
-            <Box py={2}>
-              <Typography variant="h4">{course}</Typography>
-              <Grid container spacing={2}>
-                {Array.from(courseSections[course] ?? []).map((section, k2) => {
-                  return (
-                    <Grid item xs={6}>
-                      <QuotaChart
-                        quotas={(quotas ?? []).filter(
-                          (r) =>
-                            r.section === section && r.courseCode === course
-                        )}
-                        course={course}
-                        section={section}
-                        key={`${k1}_${k2}`}
-                        showExtra={showExtra}
-                      />
+      <Divider />
+
+      {/* options */}
+      <Box>
+        <Typography variant="h6">Options</Typography>
+        <Grid container spacing={1}>
+          <Grid item>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={showExtra}
+                  onChange={() => setShowExtra((p) => !p)}
+                  color="primary"
+                />
+              }
+              label="quota/enrol?"
+            />
+          </Grid>
+          <Divider orientation="vertical" flexItem />
+          <Grid item>
+            {Object.entries(showTypes).map(([t, d]) => {
+              return (
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={d}
+                      onChange={() => {
+                        setShowTypes((r) => ({ ...r, [t]: !d }));
+                      }}
+                      color="primary"
+                    />
+                  }
+                  label={t}
+                />
+              );
+            })}
+          </Grid>
+          <Divider orientation="vertical" flexItem />
+          <Grid item>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={aggregate}
+                  onChange={() => {
+                    setAggregate((p) => !p);
+                  }}
+                  color="primary"
+                />
+              }
+              label="sum?"
+            />
+          </Grid>
+        </Grid>
+      </Box>
+
+      {/* graphs */}
+      <Grid container spacing={1}>
+        {courseSections &&
+          Object.keys(courseSections)
+            .sort()
+            .map((course, k1) => {
+              return (
+                <Grid item xs={aggregate ? 6 : 12}>
+                  <Grid container>
+                    <Grid item xs={12}>
+                      <Typography variant="h4">{course}</Typography>
                     </Grid>
-                  );
-                })}
-              </Grid>
-            </Box>
-          );
-        })}
+                    <Grid item xs={12}>
+                      <Grid container spacing={2}>
+                        {!aggregate &&
+                          Array.from(courseSections[course] ?? []).map(
+                            (section, k2) => {
+                              const regexMatchArr =
+                                section.match(/^(L|LA|T).*/);
+                              if (regexMatchArr) {
+                                const [, t] = regexMatchArr;
+                                if (!showTypes[t]) {
+                                  return null;
+                                }
+                              }
+                              return (
+                                <Grid item xs={6}>
+                                  <QuotaChart
+                                    quotas={(quotas ?? []).filter(
+                                      (r) =>
+                                        r.section === section &&
+                                        r.courseCode === course
+                                    )}
+                                    course={course}
+                                    section={section}
+                                    key={`${k1}_${k2}`}
+                                    showExtra={showExtra}
+                                  />
+                                </Grid>
+                              );
+                            }
+                          )}
+                        {aggregate && (
+                          <Grid item xs={12}>
+                            <QuotaChart
+                              quotas={(quotas ?? [])
+                                .filter((r) => r.courseCode === course)
+                                .reduce<SectionQuota[]>((p, c) => {
+                                  const e = p.find((q) => q.t === c.t);
+                                  if (e) {
+                                    e.quota += c.quota;
+                                    e.avail += c.avail;
+                                    e.enrol += c.enrol;
+                                    e.wait += c.wait;
+                                    return p;
+                                  }
+                                  p.push(c);
+                                  return p;
+                                }, [])}
+                              course={course}
+                              section="sum"
+                              key={k1}
+                              showExtra={showExtra}
+                            />
+                          </Grid>
+                        )}
+                      </Grid>
+                    </Grid>
+                  </Grid>
+                </Grid>
+              );
+            })}
+      </Grid>
     </Container>
   );
 };
