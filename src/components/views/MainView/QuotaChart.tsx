@@ -87,6 +87,9 @@ export const QuotaChart = (props: IProps) => {
         scales: {
           x: {
             type: "time",
+            ticks: {
+              display: false,
+            },
           },
           y: props.sum
             ? {

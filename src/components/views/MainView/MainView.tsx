@@ -15,7 +15,7 @@ import { useAppContext } from "../../../system/Container";
 import { useSnackbar } from "notistack";
 import { ApiService, SectionQuota } from "../../../services/ApiService";
 import store from "store";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Chart, registerables } from "chart.js";
 import { QuotaChart } from "./QuotaChart";
 Chart.register(...registerables);
