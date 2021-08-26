@@ -74,9 +74,12 @@ export const QuotaChart = (props: IProps) => {
       },
       options: {
         elements: {
-          point: {
-            radius: 0,
+          line: {
+            borderWidth: 2,
           },
+          // point: {
+          //   radius: 0,
+          // },
         },
         plugins: {
           title: {
@@ -87,18 +90,15 @@ export const QuotaChart = (props: IProps) => {
         scales: {
           x: {
             type: "time",
-            ticks: {
-              display: false,
-            },
           },
           y: props.sum
             ? {
                 ticks: {
-                  callback: (v) => {
-                    return (+v / quotaMax).toLocaleString("en-GB", {
-                      style: "percent",
-                    });
-                  },
+                  // callback: (v) => {
+                  //   return (+v / quotaMax).toLocaleString("en-GB", {
+                  //     style: "percent",
+                  //   });
+                  // },
                 },
               }
             : {
@@ -112,7 +112,7 @@ export const QuotaChart = (props: IProps) => {
 
   return (
     <Paper>
-      <canvas id={id} width={400} height={200} />
+      <canvas id={id} width={1200} height={400} />
     </Paper>
   );
 };

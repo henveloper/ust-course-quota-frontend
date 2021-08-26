@@ -1,4 +1,5 @@
 import {
+  AppBar,
   Box,
   Button,
   Checkbox,
@@ -7,32 +8,36 @@ import {
   FormControlLabel,
   Grid,
   IconButton,
+  Slider,
+  Tab,
+  Tabs,
   TextField,
   Typography,
 } from "@material-ui/core";
-import { Refresh, SportsKabaddi } from "@material-ui/icons";
+import { Refresh, SportsKabaddi, Storage } from "@material-ui/icons";
 import { useAppContext } from "../../../system/Container";
 import { useSnackbar } from "notistack";
 import { ApiService, SectionQuota } from "../../../services/ApiService";
 import store from "store";
 import { useMemo, useState } from "react";
-import { Chart, registerables } from "chart.js";
 import { QuotaChart } from "./QuotaChart";
-Chart.register(...registerables);
+import { sectionQuotas } from "../../../data/sectionQuotas";
 
 export const MainView = () => {
   const appContext = useAppContext();
   const { enqueueSnackbar } = useSnackbar();
 
-  const [isPinged, setIsPinged] = useState(false);
+  const [isFetchingQuota, setIsFetchingQuota] = useState(false);
   const [quotas, setQuotas] = useState<SectionQuota[] | undefined>(undefined);
-  const [showExtra, setShowExtra] = useState(false);
+  const [hour, setHour] = useState(6);
+  const [showExtra, setShowExtra] = useState(true);
   const [showTypes, setShowTypes] = useState<Record<string, boolean>>({
     L: true,
     LA: false,
     T: false,
   });
   const [aggregate, setAggregate] = useState(true);
+  const [subjectTabValue, setSubjectTabValue] = useState("");
 
   const courseSections = useMemo(() => {
     if (!quotas) {
@@ -47,28 +52,58 @@ export const MainView = () => {
     return s;
   }, [quotas]);
 
-  const fetch = () => appContext
-    .getService(ApiService)
-    .getQuotas(24)
-    .then((resp) => {
-      resp.quotas.sort((a, b) => a.t - b.t);
-      setQuotas(resp.quotas);
-    })
-    .catch((e) => {
-      enqueueSnackbar(e.message);
-    });
+  const subjects = useMemo(() => {
+    if (!courseSections) {
+      return;
+    }
+
+    return Array.from(
+      new Set(Object.keys(courseSections).map((r) => r.substr(0, 4)))
+    ).sort();
+  }, [courseSections]);
+
+  const fetchData = (useStatic?: boolean) => {
+    if (isFetchingQuota) {
+      return;
+    }
+    setIsFetchingQuota(true);
+
+    if (useStatic) {
+      setQuotas(
+        sectionQuotas.map((q) => ({
+          t: q[0],
+          courseCode: q[1],
+          section: q[2],
+          quota: q[3],
+          enrol: q[4],
+          avail: q[5],
+          wait: q[6],
+        }))
+      );
+      setIsFetchingQuota(false);
+      return;
+    }
+
+    appContext
+      .getService(ApiService)
+      .getQuotas(hour)
+      .then((resp) => {
+        resp.quotas.sort((a, b) => a.t - b.t);
+        setQuotas(resp.quotas);
+      })
+      .catch((e) => {
+        enqueueSnackbar(e.message);
+      })
+      .then(() => setIsFetchingQuota(false));
+  };
 
   const handlePing = () => {
     appContext
       .getService(ApiService)
       .root()
-      .then((v) => {
-        console.log(v);
-        enqueueSnackbar("PONG!", { variant: "success" });
-        setIsPinged(true);
-      })
-      .then(fetch)
-      .catch((err) => enqueueSnackbar(err.message));
+      .then(() => fetchData())
+      .then(() => enqueueSnackbar("Loading canvas...", { variant: "info" }))
+      .catch((err) => enqueueSnackbar(err.message, { variant: "error" }));
   };
 
   return (
@@ -82,35 +117,49 @@ export const MainView = () => {
           height={300}
           onClick={() => {
             appContext.setIsDarkTheme((p) => !p);
-            enqueueSnackbar("Changed theme!", { variant: "info" });
+            enqueueSnackbar("Changed theme!", { variant: "success" });
           }}
           style={{ cursor: "pointer" }}
         />
       </Box>
+
       {/* options */}
       <Box py={1}>
         <Grid container alignItems="center" spacing={2}>
-          <Grid item xs={6}>
+          <Grid item xs>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<Storage />}
+              disabled={!!quotas || isFetchingQuota}
+              onClick={() => fetchData(true)}
+            >
+              Use example data
+            </Button>
+          </Grid>
+          <Grid item xs>
             <TextField
               onChange={(v) =>
                 store.set("ustQuotaViewer:endPoint", v.target.value)
               }
+              InputProps={{
+                endAdornment: (
+                  <Button
+                    size="small"
+                    color="primary"
+                    startIcon={<SportsKabaddi />}
+                    disabled={!!quotas || isFetchingQuota}
+                    onClick={handlePing}
+                  >
+                    {!quotas ? "PING?" : "PONG!"}
+                  </Button>
+                ),
+              }}
               defaultValue={store.get("ustQuotaViewer:endPoint")}
               label="endpoint?"
               type="password"
               fullWidth
             />
-          </Grid>
-          <Grid item>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<SportsKabaddi />}
-              disabled={isPinged}
-              onClick={handlePing}
-            >
-              {!isPinged ? "PING?" : "PONG!"}
-            </Button>
           </Grid>
         </Grid>
       </Box>
@@ -122,8 +171,8 @@ export const MainView = () => {
         <Typography variant="h6">Options</Typography>
         <Grid container spacing={1}>
           <Grid item>
-            <IconButton color="primary" onClick={fetch}>
-              <Refresh/>
+            <IconButton color="primary" onClick={() => fetchData()}>
+              <Refresh />
             </IconButton>
           </Grid>
           <Divider orientation="vertical" flexItem />
@@ -141,7 +190,7 @@ export const MainView = () => {
           </Grid>
           <Divider orientation="vertical" flexItem />
           <Grid item>
-            {Object.entries(showTypes).map(([t, d]) => {
+            {Object.entries(showTypes).map(([t, d], i) => {
               return (
                 <FormControlLabel
                   control={
@@ -154,6 +203,7 @@ export const MainView = () => {
                     />
                   }
                   label={t}
+                  key={i.toString()}
                 />
               );
             })}
@@ -173,17 +223,54 @@ export const MainView = () => {
               label="sum?"
             />
           </Grid>
+          <Divider orientation="vertical" flexItem />
+          <Grid item>
+            <div style={{ width: 300 }}>
+              <Slider
+                value={hour}
+                valueLabelDisplay="auto"
+                step={null}
+                onChange={(_, v) => setHour(v as number)}
+                marks={[
+                  { value: 1 },
+                  { value: 3 },
+                  { value: 6 },
+                  { value: 12 },
+                  { value: 24 },
+                ]}
+                min={1}
+                max={72}
+              />
+            </div>
+          </Grid>
         </Grid>
       </Box>
 
-      {/* graphs */}
+      {/* component:tab */}
+      {subjects && (
+        <AppBar position="static">
+          <Tabs
+            value={subjectTabValue}
+            onChange={(_, v) => setSubjectTabValue(v)}
+          >
+            {subjects.map((s, i) => (
+              <Tab label={s} value={s} key={i} />
+            ))}
+          </Tabs>
+        </AppBar>
+      )}
+
+      {/* component:graphs */}
       <Grid container spacing={1}>
         {courseSections &&
           Object.keys(courseSections)
             .sort()
             .map((course, k1) => {
+              if (subjectTabValue && course.substr(0, 4) !== subjectTabValue) {
+                return null;
+              }
               return (
-                <Grid item xs={aggregate ? 6 : 12}>
+                <Grid item xs={12} key={k1.toString()}>
                   <Grid container>
                     <Grid item xs={12}>
                       <Typography variant="h4">{course}</Typography>
@@ -202,7 +289,7 @@ export const MainView = () => {
                                 }
                               }
                               return (
-                                <Grid item xs={6}>
+                                <Grid item xs={6} key={k2}>
                                   <QuotaChart
                                     quotas={(quotas ?? []).filter(
                                       (r) =>
@@ -223,6 +310,20 @@ export const MainView = () => {
                             <QuotaChart
                               quotas={(quotas ?? [])
                                 .filter((r) => r.courseCode === course)
+                                .filter((r) => {
+                                  const regexMatchArr =
+                                    r.section.match(/^(LA|L|T).*/);
+                                  if (regexMatchArr) {
+                                    const [, t] = regexMatchArr;
+                                    if (r.courseCode === 'COMP 2011') {
+                                      if (t === 'L') {
+                                        console.log('L', r.quota);
+                                      }
+                                    }
+                                    return showTypes[t]
+                                  }
+                                  return false;
+                                })
                                 .reduce<SectionQuota[]>((p, c) => {
                                   const e = p.find((q) => q.t === c.t);
                                   if (e) {
@@ -232,7 +333,9 @@ export const MainView = () => {
                                     e.wait += c.wait;
                                     return p;
                                   }
-                                  p.push(c);
+
+                                  // shallow copy works here because attr. simple
+                                  p.push(Object.assign({}, c));
                                   return p;
                                 }, [])}
                               course={course}
@@ -245,6 +348,7 @@ export const MainView = () => {
                         )}
                       </Grid>
                     </Grid>
+                    <Divider />
                   </Grid>
                 </Grid>
               );
