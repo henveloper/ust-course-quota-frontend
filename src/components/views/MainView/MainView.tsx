@@ -57,9 +57,13 @@ export const MainView = () => {
       return;
     }
 
-    return Array.from(
+    const retVal = Array.from(
       new Set(Object.keys(courseSections).map((r) => r.substr(0, 4)))
     ).sort();
+    if (retVal.length) {
+      setSubjectTabValue(retVal[0]);
+    }
+    return retVal;
   }, [courseSections]);
 
   const fetchData = (useStatic?: boolean) => {
@@ -123,7 +127,7 @@ export const MainView = () => {
         />
       </Box>
 
-      {/* options */}
+      {/* component:connection-options */}
       <Box py={1}>
         <Grid container alignItems="center" spacing={2}>
           <Grid item xs>
@@ -166,7 +170,7 @@ export const MainView = () => {
 
       <Divider />
 
-      {/* options */}
+      {/* component:options */}
       <Box>
         <Typography variant="h6">Options</Typography>
         <Grid container spacing={1}>
@@ -315,12 +319,7 @@ export const MainView = () => {
                                     r.section.match(/^(LA|L|T).*/);
                                   if (regexMatchArr) {
                                     const [, t] = regexMatchArr;
-                                    if (r.courseCode === 'COMP 2011') {
-                                      if (t === 'L') {
-                                        console.log('L', r.quota);
-                                      }
-                                    }
-                                    return showTypes[t]
+                                    return showTypes[t];
                                   }
                                   return false;
                                 })

@@ -15,7 +15,7 @@ export const QuotaChart = (props: IProps) => {
   const { quotas, course, section } = props;
   const id = `${course}_${section}`;
   const [chart, setChart] = useState<Chart | undefined>();
-  const quotaMax = Math.max(...quotas.map((q) => q.quota));
+  // const quotaMax = Math.max(...quotas.map((q) => q.quota));
 
   useEffect(() => {
     const e = document.getElementById(id) as HTMLCanvasElement;
